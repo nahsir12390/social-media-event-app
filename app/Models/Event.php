@@ -1,4 +1,5 @@
 <?php
+
 // app/Models/Event.php
 
 namespace App\Models;
@@ -21,14 +22,14 @@ class Event extends Model
         'latitude',
         'longitude',
         'image',
-        'is_active'
+        'is_active',
     ];
 
     protected $casts = [
         'event_date' => 'datetime',
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
-        'is_active' => 'boolean'
+        'is_active' => 'boolean',
     ];
 
     public function user(): BelongsTo
@@ -70,16 +71,19 @@ class Event extends Model
     public function scopeNearby($query, $latitude, $longitude, $radius = 5)
     {
         return $query->selectRaw(
-            "*, (6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance",
+            '*, (6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance',
             [$latitude, $longitude, $latitude]
-        )->having('distance', '<=', $radius)
-         ->orderBy('distance');
+        )->whereRaw(
+            '(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) <= ?',
+            [$latitude, $longitude, $latitude, $radius]
+        )
+            ->orderBy('distance');
     }
 
     // Scope for upcoming events
     public function scopeUpcoming($query)
     {
         return $query->where('event_date', '>=', now())
-                     ->orderBy('event_date', 'asc');
+            ->orderBy('event_date', 'asc');
     }
 }
