@@ -3,21 +3,34 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $email = config('demo.admin_email');
+        if (! User::where('email', $email)->exists() && ! config('demo.admin_password')) {
+            throw new RuntimeException('Set ADMIN_PASSWORD before creating the admin account.');
+        }
+        if (config('demo.enabled') && ! config('demo.password')) {
+            throw new RuntimeException('Set DEMO_PASSWORD when SEED_DEMO_DATA is enabled.');
+        }
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        DB::transaction(function () use ($email) {
+            User::firstOrCreate(['email' => $email], [
+                'name' => 'Campus Admin',
+                'password' => config('demo.admin_password'),
+                'email_verified_at' => now(),
+                'is_admin' => true,
+                'bio' => 'CampusConnect community administrator.',
+            ]);
+
+            if (config('demo.enabled')) {
+                $this->call(DemoSeeder::class);
+            }
+        });
     }
 }
